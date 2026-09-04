@@ -68,20 +68,34 @@ export const DataTable: React.FC<DataTableProps> = ({ data }) => {
                   </span>
                 </td>
                 <td className="px-4 py-4 text-xs">{item.batteria}</td>
-                <td className="px-4 py-4 font-bold text-base text-gray-900 dark:text-white whitespace-nowrap">
-                  €{(item.prezzoFinale ?? 0).toFixed(2)}
+                <td className="px-4 py-4 whitespace-nowrap">
+                  {item.scontoPercentuale > 0 && (
+                    <span className="block text-xs text-gray-400 line-through">
+                      €{(item.prezzoListino ?? 0).toFixed(2)}
+                    </span>
+                  )}
+                  <span className="font-bold text-base text-gray-900 dark:text-white">
+                    €{(item.prezzoFinale ?? 0).toFixed(2)}
+                  </span>
                 </td>
                 <td className="px-6 py-4">
-                  {item.linkOfferta && (
-                    <a
-                      href={item.linkOfferta}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200 text-xs font-medium underline underline-offset-2"
-                    >
-                      Vedi →
-                    </a>
-                  )}
+                  <div className="flex flex-col gap-1">
+                    {item.scontoPercentuale > 0 && (
+                      <span className="inline-flex items-center gap-1 text-xs font-bold text-green-700 dark:text-green-400 bg-green-100 dark:bg-green-900 px-2 py-0.5 rounded-full w-fit">
+                        🏷️ -{item.scontoPercentuale}%
+                      </span>
+                    )}
+                    {item.linkOfferta && (
+                      <a
+                        href={item.linkOfferta}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200 text-xs font-medium underline underline-offset-2"
+                      >
+                        Vedi →
+                      </a>
+                    )}
+                  </div>
                 </td>
               </tr>
             );

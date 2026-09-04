@@ -22,37 +22,66 @@ function extractGradeSuffix(offerUrl: string): string {
   return m ? m[1] : '';
 }
 
+/** Data fetched from a single SKU page */
+interface SkuPageData {
+  sim: string;
+  scontoPercentuale: number;
+}
+
 /**
- * Fetch the <title> of a single SKU page to determine the SIM type.
- * Returns one of: "Dual SIM (Physical + eSIM)" | "Dual SIM (2x eSIM)" | "Dual SIM"
+ * Fetch a single SKU page to determine:
+ *  - SIM type: "Dual SIM (Physical + eSIM)" | "Dual SIM (2x eSIM)" | "Dual SIM"
+ *  - Discount percentage (e.g. 8 for "8%"), or 0 if none
  */
-async function fetchSimType(
-  baseProductUrl: string,  // e.g. https://www.refurbed.it/p/iphone-16-pro/
+async function fetchSkuPageData(
+  baseProductUrl: string,
   sku: number,
   gradeSuffix: string
-): Promise<string> {
+): Promise<SkuPageData> {
   const url = `${baseProductUrl}${sku}${gradeSuffix}/`;
   try {
     const res = await fetch(url, {
       headers: { 'User-Agent': 'Mozilla/5.0 (compatible)', 'Accept-Language': 'it-IT,it;q=0.9' },
       signal: AbortSignal.timeout(8000),
     });
-    if (!res.ok) return 'Dual SIM';
+    if (!res.ok) return { sim: 'Dual SIM', scontoPercentuale: 0 };
     const html = await res.text();
-    // The title contains the SIM type, e.g.:
-    //   "Apple iPhone 16 Pro 512 GB bianco Dual-SIM (eSIM, Nano-SIM) – refurbed"
-    //   "Apple iPhone 16 Pro 512 GB bianco Dual-SIM (2 x eSIM) – refurbed"
+
+    // ── SIM type from page <title> ──────────────────────────────────────────
+    // e.g. "Apple iPhone 16 Pro 512 GB bianco Dual-SIM (eSIM, Nano-SIM) – refurbed"
+    //      "Apple iPhone 16 Pro 512 GB bianco Dual-SIM (2 x eSIM) – refurbed"
     const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/);
     const title = titleMatch ? titleMatch[1] : '';
+    let sim = 'Dual SIM';
     if (title.includes('2 x eSIM') || title.includes('2x eSIM')) {
-      return 'Dual SIM (2x eSIM)';
+      sim = 'Dual SIM (2x eSIM)';
+    } else if (title.includes('eSIM, Nano-SIM') || title.includes('Nano-SIM')) {
+      sim = 'Dual SIM (Physical + eSIM)';
     }
-    if (title.includes('eSIM, Nano-SIM') || title.includes('Nano-SIM')) {
-      return 'Dual SIM (Physical + eSIM)';
+
+    // ── Discount percentage ─────────────────────────────────────────────────
+    // Refurbed embeds coupon/discount data in the page as a JSON object or as
+    // a visible badge like "-8%". We try several patterns:
+    let scontoPercentuale = 0;
+
+    // Pattern 1: JSON embedded discount, e.g. "discountPercentage":8
+    const discJsonMatch = html.match(/"discountPercentage"\s*:\s*(\d+)/);
+    if (discJsonMatch) {
+      scontoPercentuale = parseInt(discJsonMatch[1], 10);
     }
-    return 'Dual SIM';
+
+    // Pattern 2: visible badge like "-8%" or "8 %" near "sconto" / "coupon"
+    if (!scontoPercentuale) {
+      const discBadgeMatch = html.match(/-(\d{1,2})%/);
+      if (discBadgeMatch) {
+        const pct = parseInt(discBadgeMatch[1], 10);
+        if (pct > 0 && pct <= 50) scontoPercentuale = pct; // sanity check
+      }
+    }
+
+    return { sim, scontoPercentuale };
   } catch {
-    return 'Dual SIM';
+    return { sim: 'Dual SIM', scontoPercentuale: 0 };
   }
 }
 
@@ -113,15 +142,15 @@ async function scrapeModel(
     }
   }
 
-  // Fetch SIM type for each SKU using the first available grade suffix ("aa" preferred)
-  // to minimise HTTP calls — SIM type is identical across grades for the same SKU
+  // Fetch SKU page data (SIM type + discount) for each unique SKU in parallel.
+  // We use the preferred suffix to minimise calls — SIM type is the same across grades.
   const preferredSuffix = seenSuffixes.has('aa') ? 'aa' : (seenSuffixes.has('b') ? 'b' : '');
-  const simTypeCache = new Map<number, string>();
+  const skuDataCache = new Map<number, SkuPageData>();
 
   await Promise.all(
     Array.from(allSkus).map(async (sku) => {
-      const simType = await fetchSimType(url, sku, preferredSuffix);
-      simTypeCache.set(sku, simType);
+      const data = await fetchSkuPageData(url, sku, preferredSuffix);
+      skuDataCache.set(sku, data);
     })
   );
 
@@ -137,23 +166,28 @@ async function scrapeModel(
 
       const priceNum = typeof price === 'number' ? price : parseFloat(price);
       const sku: number = variant.sku;
-      const sim = simTypeCache.get(sku) ?? 'Dual SIM';
+      const skuData = skuDataCache.get(sku) ?? { sim: 'Dual SIM', scontoPercentuale: 0 };
       const avail = variant.offers?.availability ?? '';
       const available = avail.includes('InStock');
 
       if (!available) continue; // skip OutOfStock variants
 
+      const sconto = skuData.scontoPercentuale;
+      const prezzoFinale = sconto > 0
+        ? Math.round(priceNum * (1 - sconto / 100) * 100) / 100
+        : priceNum;
+
       offers.push({
         modello: modelloBase,
         memoria: variant.size ?? 'Sconosciuta',
         colore: variant.color ?? 'Sconosciuto',
-        sim,
+        sim: skuData.sim,
         grado,
-        batteria: 'Nuova',        // Refurbed garantisce sempre batteria nuova
+        batteria: 'Nuova',
         prezzoListino: priceNum,
-        scontoPercentuale: 0,
-        prezzoFinale: priceNum,
-        notePromo: '',
+        scontoPercentuale: sconto,
+        prezzoFinale,
+        notePromo: sconto > 0 ? `🏷️ -${sconto}% applicato` : '',
         sku: String(sku ?? ''),
         linkOfferta: variant.offers?.url ?? '',
       });
