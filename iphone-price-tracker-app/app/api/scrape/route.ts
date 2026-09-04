@@ -17,7 +17,7 @@ export async function GET() {
     const html = await res.text();
     const $ = cheerio.load(html);
 
-    let parsedData = null;
+    let parsedData: any = null;
 
     // Find the JSON-LD script containing the ProductGroup
     $('script[type="application/ld+json"]').each((_, el) => {
