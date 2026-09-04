@@ -40,7 +40,7 @@ export async function GET() {
       throw new Error('Could not find ProductGroup data in the HTML');
     }
 
-    const extractedOffers = [];
+    const extractedOffers: any[] = [];
 
     // Map the variants to the frontend expected format
     parsedData.hasVariant.forEach((variant: any) => {
