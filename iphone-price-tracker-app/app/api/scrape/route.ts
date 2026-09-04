@@ -201,12 +201,13 @@ async function scrapeModel(
 
 export async function GET() {
   try {
-    const [pro, proMax] = await Promise.all([
+    const [pro, proMax, pro15Max] = await Promise.all([
       scrapeModel('https://www.refurbed.it/p/iphone-16-pro/', 'iPhone 16 Pro'),
       scrapeModel('https://www.refurbed.it/p/iphone-16-pro-max/', 'iPhone 16 Pro Max'),
+      scrapeModel('https://www.refurbed.it/p/iphone-15-pro-max/', 'iPhone 15 Pro Max'),
     ]);
 
-    const data = [...pro, ...proMax];
+    const data = [...pro, ...proMax, ...pro15Max];
 
     return NextResponse.json({ success: true, count: data.length, data });
   } catch (error: any) {

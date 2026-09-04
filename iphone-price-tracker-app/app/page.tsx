@@ -35,7 +35,7 @@ export default function Dashboard() {
               iPhone Price Tracker <span className="text-blue-600">Refurbed</span>
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              Monitoraggio Prezzi iPhone 16 Pro e Pro Max (Gradi: Premium/Ottimo, Batteria: Nuova)
+              Monitoraggio Prezzi iPhone 15 Pro Max · 16 Pro · 16 Pro Max (Gradi: Premium/Ottimo, Batteria: Nuova)
             </p>
           </div>
           <div className="flex flex-col items-end gap-2">
@@ -62,7 +62,12 @@ export default function Dashboard() {
 
         {/* KPI Section */}
         {data.length > 0 && (
-          <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <KPICard 
+              model="iPhone 15 Pro Max" 
+              bestPrice={Math.min(...data.filter(d => d.modello === 'iPhone 15 Pro Max').map(d => d.prezzoFinale), 9999)}
+              specs={`${data.filter(d => d.modello === 'iPhone 15 Pro Max').length} varianti disponibili`}
+            />
             <KPICard 
               model="iPhone 16 Pro" 
               bestPrice={Math.min(...data.filter(d => d.modello === 'iPhone 16 Pro').map(d => d.prezzoFinale), 9999)}
