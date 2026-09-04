@@ -11,6 +11,8 @@ export type OfferData = {
   scontoPercentuale: number;
   prezzoFinale: number;
   notePromo: string;
+  sku?: string;
+  linkOfferta?: string;
 };
 
 type DataTableProps = {
@@ -50,7 +52,7 @@ export const DataTable: React.FC<DataTableProps> = ({ data }) => {
                   {item.grado}
                 </span>
               </td>
-              <td className="px-4 py-4">€{item.prezzoListino.toFixed(2)}</td>
+              <td className="px-4 py-4">€{(item.prezzoListino ?? 0).toFixed(2)}</td>
               <td className="px-4 py-4">
                 {item.scontoPercentuale > 0 ? (
                   <span className="text-green-600 font-bold">-{item.scontoPercentuale}%</span>
@@ -58,7 +60,7 @@ export const DataTable: React.FC<DataTableProps> = ({ data }) => {
                   <span className="text-gray-400">-</span>
                 )}
               </td>
-              <td className="px-4 py-4 font-bold text-lg text-gray-900 dark:text-white">€{item.prezzoFinale.toFixed(2)}</td>
+              <td className="px-4 py-4 font-bold text-lg text-gray-900 dark:text-white">€{(item.prezzoFinale ?? 0).toFixed(2)}</td>
               <td className="px-6 py-4">
                 {item.notePromo && (
                   <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded font-medium dark:bg-yellow-900 dark:text-yellow-300">

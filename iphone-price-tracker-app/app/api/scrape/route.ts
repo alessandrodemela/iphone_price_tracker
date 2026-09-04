@@ -77,13 +77,19 @@ async function scrapeModel(url: string, modelloBase: string): Promise<any[]> {
       const price = variant.offers?.price;
       if (!price) continue;
 
+      const priceNum = typeof price === 'number' ? price : parseFloat(price);
+
       offers.push({
         modello: modelloBase,
         memoria: variant.size ?? 'Sconosciuta',
         colore: variant.color ?? 'Sconosciuto',
         sim: 'Dual SIM',
         grado,
-        prezzoFinale: price,
+        batteria: 'Standard',
+        prezzoListino: priceNum,
+        scontoPercentuale: 0,
+        prezzoFinale: priceNum,
+        notePromo: '',
         sku: String(variant.sku ?? ''),
         linkOfferta: variant.offers?.url ?? '',
       });
