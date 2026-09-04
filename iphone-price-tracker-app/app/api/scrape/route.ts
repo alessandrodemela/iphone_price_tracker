@@ -1,12 +1,8 @@
 import { NextResponse } from 'next/server';
-import * as cheerio from 'cheerio';
-import fs from 'fs/promises';
-import path from 'path';
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
     // In un caso reale, qui faresti un fetch() all'URL di Refurbed.
-    // Per questo esempio, leggiamo i file locali (se disponibili) o facciamo mock.
     // fetch('https://www.refurbed.it/p/iphone-16-pro/')
     
     // Logica di estrazione (mockata/esemplificativa basata sui requisiti)
@@ -39,6 +35,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ success: true, data: mockData });
   } catch (error) {
+    console.error(error);
     return NextResponse.json({ success: false, error: 'Errore durante lo scraping' }, { status: 500 });
   }
 }
