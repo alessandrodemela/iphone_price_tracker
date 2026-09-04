@@ -42,7 +42,7 @@ async function fetchSimType(
     // The title contains the SIM type, e.g.:
     //   "Apple iPhone 16 Pro 512 GB bianco Dual-SIM (eSIM, Nano-SIM) – refurbed"
     //   "Apple iPhone 16 Pro 512 GB bianco Dual-SIM (2 x eSIM) – refurbed"
-    const titleMatch = html.match(/<title[^>]*>(.*?)<\/title>/s);
+    const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/);
     const title = titleMatch ? titleMatch[1] : '';
     if (title.includes('2 x eSIM') || title.includes('2x eSIM')) {
       return 'Dual SIM (2x eSIM)';
