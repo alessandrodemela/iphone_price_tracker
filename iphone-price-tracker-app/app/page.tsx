@@ -65,14 +65,13 @@ export default function Dashboard() {
           <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <KPICard 
               model="iPhone 16 Pro" 
-              bestPrice={Math.min(...data.filter(d => d.modello.includes("16 Pro") && !d.modello.includes("Max")).map(d => d.prezzoFinale), 9999)}
-              specs="Memoria: 256GB, Grado: Premium, Batteria: Nuova, SIM: Dual, Colore: Titanio Nero"
-              promo="⌛ 8% di sconto: solo oggi"
+              bestPrice={Math.min(...data.filter(d => d.modello === 'iPhone 16 Pro').map(d => d.prezzoFinale), 9999)}
+              specs={`${data.filter(d => d.modello === 'iPhone 16 Pro').length} varianti disponibili`}
             />
             <KPICard 
               model="iPhone 16 Pro Max" 
-              bestPrice={Math.min(...data.filter(d => d.modello.includes("Max")).map(d => d.prezzoFinale), 9999)}
-              specs="Memoria: 512GB, Grado: Ottimo, Batteria: Nuova, SIM: eSIM, Colore: Titanio Naturale"
+              bestPrice={Math.min(...data.filter(d => d.modello === 'iPhone 16 Pro Max').map(d => d.prezzoFinale), 9999)}
+              specs={`${data.filter(d => d.modello === 'iPhone 16 Pro Max').length} varianti disponibili`}
             />
           </section>
         )}
