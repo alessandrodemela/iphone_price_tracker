@@ -22,29 +22,22 @@ function extractGradeSuffix(offerUrl: string): string {
   return m ? m[1] : '';
 }
 
-/** Data fetched from a single SKU page */
-interface SkuPageData {
-  sim: string;
-  scontoPercentuale: number;
-}
-
 /**
- * Fetch a single SKU page to determine:
- *  - SIM type: "Dual SIM (Physical + eSIM)" | "Dual SIM (2x eSIM)" | "Dual SIM"
- *  - Discount percentage (e.g. 8 for "8%"), or 0 if none
+ * Fetch a single SKU page to determine the SIM type:
+ *  "Dual SIM (Physical + eSIM)" | "Dual SIM (2x eSIM)" | "Dual SIM"
  */
-async function fetchSkuPageData(
+async function fetchSimType(
   baseProductUrl: string,
   sku: number,
   gradeSuffix: string
-): Promise<SkuPageData> {
+): Promise<string> {
   const url = `${baseProductUrl}${sku}${gradeSuffix}/`;
   try {
     const res = await fetch(url, {
       headers: { 'User-Agent': 'Mozilla/5.0 (compatible)', 'Accept-Language': 'it-IT,it;q=0.9' },
       signal: AbortSignal.timeout(8000),
     });
-    if (!res.ok) return { sim: 'Dual SIM', scontoPercentuale: 0 };
+    if (!res.ok) return 'Dual SIM';
     const html = await res.text();
 
     // ── SIM type from page <title> ──────────────────────────────────────────
@@ -52,36 +45,14 @@ async function fetchSkuPageData(
     //      "Apple iPhone 16 Pro 512 GB bianco Dual-SIM (2 x eSIM) – refurbed"
     const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/);
     const title = titleMatch ? titleMatch[1] : '';
-    let sim = 'Dual SIM';
     if (title.includes('2 x eSIM') || title.includes('2x eSIM')) {
-      sim = 'Dual SIM (2x eSIM)';
+      return 'Dual SIM (2x eSIM)';
     } else if (title.includes('eSIM, Nano-SIM') || title.includes('Nano-SIM')) {
-      sim = 'Dual SIM (Physical + eSIM)';
+      return 'Dual SIM (Physical + eSIM)';
     }
-
-    // ── Discount percentage ─────────────────────────────────────────────────
-    // Refurbed embeds coupon/discount data in the page as a JSON object or as
-    // a visible badge like "-8%". We try several patterns:
-    let scontoPercentuale = 0;
-
-    // Pattern 1: JSON embedded discount, e.g. "discountPercentage":8
-    const discJsonMatch = html.match(/"discountPercentage"\s*:\s*(\d+)/);
-    if (discJsonMatch) {
-      scontoPercentuale = parseInt(discJsonMatch[1], 10);
-    }
-
-    // Pattern 2: visible badge like "-8%" or "8 %" near "sconto" / "coupon"
-    if (!scontoPercentuale) {
-      const discBadgeMatch = html.match(/-(\d{1,2})%/);
-      if (discBadgeMatch) {
-        const pct = parseInt(discBadgeMatch[1], 10);
-        if (pct > 0 && pct <= 50) scontoPercentuale = pct; // sanity check
-      }
-    }
-
-    return { sim, scontoPercentuale };
+    return 'Dual SIM';
   } catch {
-    return { sim: 'Dual SIM', scontoPercentuale: 0 };
+    return 'Dual SIM';
   }
 }
 
@@ -142,15 +113,15 @@ async function scrapeModel(
     }
   }
 
-  // Fetch SKU page data (SIM type + discount) for each unique SKU in parallel.
+  // Fetch SIM type for each unique SKU in parallel.
   // We use the preferred suffix to minimise calls — SIM type is the same across grades.
   const preferredSuffix = seenSuffixes.has('aa') ? 'aa' : (seenSuffixes.has('b') ? 'b' : '');
-  const skuDataCache = new Map<number, SkuPageData>();
+  const simCache = new Map<number, string>();
 
   await Promise.all(
     Array.from(allSkus).map(async (sku) => {
-      const data = await fetchSkuPageData(url, sku, preferredSuffix);
-      skuDataCache.set(sku, data);
+      const sim = await fetchSimType(url, sku, preferredSuffix);
+      simCache.set(sku, sim);
     })
   );
 
@@ -166,28 +137,20 @@ async function scrapeModel(
 
       const priceNum = typeof price === 'number' ? price : parseFloat(price);
       const sku: number = variant.sku;
-      const skuData = skuDataCache.get(sku) ?? { sim: 'Dual SIM', scontoPercentuale: 0 };
+      const sim = simCache.get(sku) ?? 'Dual SIM';
       const avail = variant.offers?.availability ?? '';
       const available = avail.includes('InStock');
 
       if (!available) continue; // skip OutOfStock variants
 
-      const sconto = skuData.scontoPercentuale;
-      const prezzoFinale = sconto > 0
-        ? Math.round(priceNum * (1 - sconto / 100) * 100) / 100
-        : priceNum;
-
       offers.push({
         modello: modelloBase,
         memoria: variant.size ?? 'Sconosciuta',
         colore: variant.color ?? 'Sconosciuto',
-        sim: skuData.sim,
+        sim,
         grado,
         batteria: 'Nuova',
         prezzoListino: priceNum,
-        scontoPercentuale: sconto,
-        prezzoFinale,
-        notePromo: sconto > 0 ? `🏷️ -${sconto}% applicato` : '',
         sku: String(sku ?? ''),
         linkOfferta: variant.offers?.url ?? '',
       });

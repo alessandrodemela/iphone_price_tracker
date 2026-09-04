@@ -65,17 +65,17 @@ export default function Dashboard() {
           <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <KPICard 
               model="iPhone 15 Pro Max" 
-              bestPrice={Math.min(...data.filter(d => d.modello === 'iPhone 15 Pro Max').map(d => d.prezzoFinale), 9999)}
+              bestPrice={Math.min(...data.filter(d => d.modello === 'iPhone 15 Pro Max').map(d => d.prezzoListino), 9999)}
               specs={`${data.filter(d => d.modello === 'iPhone 15 Pro Max').length} varianti disponibili`}
             />
             <KPICard 
               model="iPhone 16 Pro" 
-              bestPrice={Math.min(...data.filter(d => d.modello === 'iPhone 16 Pro').map(d => d.prezzoFinale), 9999)}
+              bestPrice={Math.min(...data.filter(d => d.modello === 'iPhone 16 Pro').map(d => d.prezzoListino), 9999)}
               specs={`${data.filter(d => d.modello === 'iPhone 16 Pro').length} varianti disponibili`}
             />
             <KPICard 
               model="iPhone 16 Pro Max" 
-              bestPrice={Math.min(...data.filter(d => d.modello === 'iPhone 16 Pro Max').map(d => d.prezzoFinale), 9999)}
+              bestPrice={Math.min(...data.filter(d => d.modello === 'iPhone 16 Pro Max').map(d => d.prezzoListino), 9999)}
               specs={`${data.filter(d => d.modello === 'iPhone 16 Pro Max').length} varianti disponibili`}
             />
           </section>
